@@ -40,25 +40,35 @@ async function getDashboardData(query) {
   }
 
   const promises = [destinationPromise, weathersPromise, airportPromise];
-  const [destination, wheathers, airport] = await Promise.all(promises);
+  const [destinations, wheathers, airports] = await Promise.all(promises);
+
+  const destination = destinations[0];
+  const wheather = wheathers[0];
+  const airport = airports[0];
   return {
-    city: destination[0].name,
-    country: destination[0].country,
-    temperature: wheathers[0].temperature,
-    weather: wheathers[0].weather_description,
-    airport: airport[0].name,
+    city: destination ? destination.name : null,
+    country: destination ? destination.country : null,
+    temperature: wheather ? wheather.temperature : null,
+    weather: wheather ? wheather.weather_description : null,
+    airport: airport ? airport.name : null,
   };
 }
 
 (async () => {
   try {
-    const res = await getDashboardData("london");
+    const res = await getDashboardData("vienna");
     console.log("Dasboard data:", res);
-    console.log(
-      `${res.city} is in ${res.country}.\n` +
-        `Today there are ${res.temperature} degrees and the weather is ${res.weather}.\n` +
-        `The main airport is ${res.airport}.\n`
-    );
+    let frase = ``;
+    if (res.city !== null && res.country !== null) {
+      frase += `${res.city} is in ${res.country}.\n`;
+    }
+    if (res.temperature !== null && res.weather !== null) {
+      frase += `Today there are ${res.temperature} degrees and the weather is ${res.weather}.\n`;
+    }
+    if (res.airport !== null) {
+      frase += `The main airport is ${res.airport}.\n`;
+    }
+    console.log(frase);
   } catch (err) {
     console.error(err);
   }
