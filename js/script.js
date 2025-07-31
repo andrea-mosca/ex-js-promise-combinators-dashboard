@@ -5,53 +5,56 @@ async function fetchJson(url) {
 }
 
 async function getDashboardData(query) {
-  let destinationPromise;
   try {
-    destinationPromise = await fetchJson(
+    const destinationPromise = fetchJson(
       `http://localhost:3333/destinations?search=${query}`
     );
-  } catch (err) {
-    throw new Error(`impossibile trovare destinazione: ${query}`);
-  }
-  if (destinationPromise.message) {
-    throw new Error(destinationPromise.message);
-  }
-  let weathersPromise;
-  try {
-    weathersPromise = await fetchJson(
+
+    const weathersPromise = fetchJson(
       `http://localhost:3333/weathers?search=${query}`
     );
-  } catch (err) {
-    throw new Error(`impossibile trovare il meteo di: ${query}`);
-  }
-  if (weathersPromise.message) {
-    throw new Error(weathersPromise.message);
-  }
-  let airportPromise;
-  try {
-    airportPromise = await fetchJson(
+
+    const airportPromise = fetchJson(
       `http://localhost:3333/airports?search=${query}`
     );
+
+    const promises = [destinationPromise, weathersPromise, airportPromise];
+    const [destinationsResult, weathersResult, airportsResult] =
+      await Promise.allSettled(promises);
+    console.log(destinationsResult, weathersResult, airportsResult);
+
+    const data = {};
+    if (destinationsResult.status === `rejected`) {
+      console.error(`problema in destinations: `, destinationsResult.reason);
+      data.city = null;
+      data.country = null;
+    } else {
+      const destination = destinationsResult.value[0];
+      data.city = destination ? destination.name : null;
+      data.country = destination ? destination.country : null;
+    }
+
+    if (weathersResult.status === `rejected`) {
+      console.error(`problema in weather: `, weathersResult.reason);
+      data.temperature = null;
+      data.weather = null;
+    } else {
+      const weather = weathersResult.value[0];
+      data.temperature = weather ? weather.temperature : null;
+      data.weather = weather ? weather.weather_description : null;
+    }
+    if (airportsResult.status === `rejected`) {
+      console.error(`problema in airport: `, airportsResult.reason);
+      data.airport = null;
+    } else {
+      const airport = airportsResult.value[0];
+      data.airport = airport ? airport.name : null;
+    }
+
+    return data;
   } catch (err) {
-    throw new Error(`impossibile trovare l'aereoporto di: ${query}`);
+    console.error(err);
   }
-  if (airportPromise.message) {
-    throw new Error(airportPromise.message);
-  }
-
-  const promises = [destinationPromise, weathersPromise, airportPromise];
-  const [destinations, wheathers, airports] = await Promise.all(promises);
-
-  const destination = destinations[0];
-  const wheather = wheathers[0];
-  const airport = airports[0];
-  return {
-    city: destination ? destination.name : null,
-    country: destination ? destination.country : null,
-    temperature: wheather ? wheather.temperature : null,
-    weather: wheather ? wheather.weather_description : null,
-    airport: airport ? airport.name : null,
-  };
 }
 
 (async () => {
